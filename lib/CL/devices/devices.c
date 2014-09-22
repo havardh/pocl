@@ -39,6 +39,11 @@
 #include "tce/ttasim/ttasim.h"
 #endif
 
+#define BUILD_PTX
+#if defined(BUILD_PTX)
+#include "ptx/ptx.h"
+#endif
+
 #define MAX_DEV_NAME_LEN 64
 
 /* the enabled devices */
@@ -57,6 +62,9 @@ static init_device_ops pocl_devices_init_ops[] = {
 #endif
 #if defined(TCE_AVAILABLE)
   pocl_ttasim_init_device_ops,
+#endif
+#if defined(BUILD_PTX)
+  pocl_ptx_init_device_ops,
 #endif
 };
 

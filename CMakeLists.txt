@@ -588,7 +588,7 @@ set(OCL_KERNEL_TARGET_CPU "${LLC_HOST_CPU}") #The kernel target CPU variant.
 
 # Determine which device drivers to build.
 
-set(OCL_DRIVERS "basic pthreads")
+set(OCL_DRIVERS "basic pthreads ptx")
 
 if(NOT DEFINED DEFAULT_ENABLE_TCE)
 
