@@ -1,0 +1,9 @@
+
+AT_BANNER([PTX tests])
+
+AT_SETUP([A basic ptx driver test])
+AT_KEYWORDS([ptx])
+AT_CHECK([POCL_DEVICES=ptx $abs_top_builddir/tests/ptx/test_ptxHelloWorld], 0,
+[ptx
+])
+AT_CLEANUP

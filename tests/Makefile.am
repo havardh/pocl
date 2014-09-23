@@ -22,8 +22,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-DIST_SUBDIRS = kernel regression runtime workgroup tce cell
-SUBDIRS = kernel regression runtime workgroup
+DIST_SUBDIRS = kernel regression runtime workgroup tce cell ptx
+SUBDIRS = kernel regression runtime workgroup ptx
 if TCE_AVAILABLE
 SUBDIRS += tce
 endif
@@ -52,7 +52,7 @@ EXTRA_DIST = testsuite.at testsuite-samples.at testsuite-viennacl.at testsuite-r
 	testsuite-rodinia.at testsuite-tce.at testsuite-runtime.at \
 	testsuite-workgroup.at testsuite-parboil.at testsuite-amd.at \
 	testsuite-vexcl.at testsuite-piglit.at $(srcdir)/package.m4 \
-	$(TESTSUITE) atlocal.in testsuite-amdsdk2_9.at
+	$(TESTSUITE) atlocal.in testsuite-amdsdk2_9.at testsuite-ptx.at
 DISTCLEANFILES = atconfig
 
 check-local: atconfig atlocal $(TESTSUITE)
@@ -71,7 +71,7 @@ AUTOTEST = $(AUTOM4TE) --language=autotest
 $(TESTSUITE): $(srcdir)/testsuite.at $(srcdir)/testsuite-samples.at $(srcdir)/testsuite-regression.at \
 	$(srcdir)/testsuite-tce.at $(srcdir)/testsuite-viennacl.at \
 	$(srcdir)/testsuite-rodinia.at $(srcdir)/testsuite-parboil.at \
-	$(srcdir)/testsuite-amd.at \
+	$(srcdir)/testsuite-amd.at $(srcdir)/testsuite-ptx.at \
 	$(srcdir)/testsuite-runtime.at $(srcdir)/testsuite-workgroup.at \
 	$(srcdir)/testsuite-vexcl.at $(srcdir)/testsuite-piglit.at \
 	$(srcdir)/package.m4 

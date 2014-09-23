@@ -1311,6 +1311,7 @@ AC_CONFIG_FILES([Makefile
                  tests/tce/fp16/Makefile
                  tests/cell/Makefile
                  tests/cell/hello/Makefile
+                 tests/ptx/Makefile
                  ])
 
 AC_OUTPUT
