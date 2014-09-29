@@ -28,5 +28,5 @@ noinst_LTLIBRARIES = libpocl-devices-ptx.la
 libpocl_devices_ptx_la_SOURCES = ptx.h ptx.c
 
 libpocl_devices_ptx_la_CPPFLAGS = -I$(top_srcdir)/fix-include -I$(top_srcdir)/include \
--I$(top_srcdir)/lib/CL/devices -I$(top_srcdir)/lib/CL $(OCL_ICD_CFLAGS)
-libpocl_devices_ptx_la_LDFLAGS = -lltdl @PTHREAD_CFLAGS@ --version-info ${LIB_VERSION}
+-I$(top_srcdir)/lib/CL/devices -I$(top_srcdir)/lib/CL $(OCL_ICD_CFLAGS) -I/usr/local/cuda/include
+libpocl_devices_ptx_la_LDFLAGS = -lltdl @PTHREAD_CFLAGS@ --version-info ${LIB_VERSION} -L/usr/local/cuda/lib -lcuda
