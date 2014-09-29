@@ -122,7 +122,7 @@ static llvm::sys::Mutex kernelCompilerLock;
 
 static void InitializeLLVM();
 
-//#define DEBUG_POCL_LLVM_API
+#define DEBUG_POCL_LLVM_API
 
 #if defined(DEBUG_POCL_LLVM_API) && defined(NDEBUG)
 #undef NDEBUG
@@ -808,6 +808,7 @@ static TargetMachine* GetTargetMachine(cl_device_id device,
   const Target *TheTarget = 
     TargetRegistry::lookupTarget("", TheTriple, Error);
   
+  printf("Target: %s\n", TheTarget->getName());
   // In LLVM 3.4 and earlier, the target registry falls back to 
   // the cpp backend in case a proper match was not found. In 
   // that case simply do not use target info in the compilation 
@@ -1102,6 +1103,10 @@ kernel_library
       if (triple.getArch() == Triple::tce) 
         {
           kernellib += "tce";
+        } 
+      else if (triple.getArch() == Triple::nvptx64) 
+        {
+          kernellib += "nvptx64";
         }
 #ifdef LLVM_3_2 
       else if (triple.getArch() == Triple::cellspu) 
@@ -1124,6 +1129,8 @@ kernel_library
       kernellib += device->llvm_target_triplet;
       kernellib += ".bc";
     }
+
+  printf("%s\n", kernellib.c_str());
 
   SMDiagnostic Err;
   llvm::Module *lib = ParseIRFile(kernellib.c_str(), Err, *GlobalContext());
@@ -1303,10 +1310,12 @@ pocl_llvm_codegen(cl_kernel kernel,
     std::error_code error;
     tool_output_file outfile(outfilename, error, F_Binary);
 #endif
+    printf("%s\n", device->llvm_target_triplet);
     llvm::Triple triple(device->llvm_target_triplet);
     llvm::TargetMachine *target = GetTargetMachine(device);
     llvm::Module *input = ParseIRFile(infilename, Err, *GlobalContext());
-
+    printf("%d\n", triple.getOS());
+    input->dump();
     llvm::PassManager PM;
     llvm::TargetLibraryInfo *TLI = new TargetLibraryInfo(triple);
     PM.add(TLI);
@@ -1332,8 +1341,16 @@ pocl_llvm_codegen(cl_kernel kernel,
     // TODO: better error check
     formatted_raw_ostream FOS(outfile.os());
     llvm::MCContext *mcc;
-    if(target->addPassesToEmitMC(PM, mcc, FOS, llvm::TargetMachine::CGFT_ObjectFile))
+    if (triple.getArch() == Triple::nvptx64) 
+      {
+        if (target->addPassesToEmitFile(PM, FOS, llvm::TargetMachine::CGFT_AssemblyFile))
+            return 1;
+      }
+    else {
+      if(target->addPassesToEmitMC(PM, mcc, FOS, llvm::TargetMachine::CGFT_ObjectFile))
         return 1;
+    }
+    printf("ret addPassesToEmit\n");
 
     PM.run(*input);
     outfile.keep();
