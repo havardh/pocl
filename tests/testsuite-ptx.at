@@ -7,3 +7,10 @@ AT_CHECK([POCL_DEVICES=ptx $abs_top_builddir/tests/ptx/test_ptxHelloWorld], 0,
 [ptx
 ])
 AT_CLEANUP
+
+AT_SETUP([A Vector add test])
+AT_KEYWORDS([ptx])
+AT_CHECK([POCL_DEVICES=ptx $abs_top_builddir/tests/ptx/test_ptxVectorAdd], 0,
+[1 + 1 = 2
+])
+AT_CLEANUP

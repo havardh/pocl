@@ -122,7 +122,7 @@ static llvm::sys::Mutex kernelCompilerLock;
 
 static void InitializeLLVM();
 
-#define DEBUG_POCL_LLVM_API
+//#define DEBUG_POCL_LLVM_API
 
 #if defined(DEBUG_POCL_LLVM_API) && defined(NDEBUG)
 #undef NDEBUG
@@ -808,7 +808,6 @@ static TargetMachine* GetTargetMachine(cl_device_id device,
   const Target *TheTarget = 
     TargetRegistry::lookupTarget("", TheTriple, Error);
   
-  printf("Target: %s\n", TheTarget->getName());
   // In LLVM 3.4 and earlier, the target registry falls back to 
   // the cpp backend in case a proper match was not found. In 
   // that case simply do not use target info in the compilation 
@@ -1185,10 +1184,12 @@ int pocl_llvm_generate_workgroup_function(cl_device_id device,
 
   // Later this should be replaced with indexed linking of source code
   // and/or bitcode for each kernel.
-  llvm::Module *libmodule = kernel_library(device, input);
-  assert (libmodule != NULL);
-  link(input, libmodule);
-
+  if (strcmp(device->short_name, "ptx") != 0) 
+    {
+      llvm::Module *libmodule = kernel_library(device, input);
+      assert (libmodule != NULL);
+      link(input, libmodule);
+    }
   /* Now finally run the set of passes assembled above */
   // TODO pass these as parameters instead, this is not thread safe!
   pocl::LocalSize.clear();
@@ -1197,14 +1198,16 @@ int pocl_llvm_generate_workgroup_function(cl_device_id device,
   pocl::LocalSize.addValue(local_z);
   KernelName = kernel->name;
 
+  if (strcmp(device->short_name, "ptx") != 0) 
+    {
 #if (defined LLVM_3_2 or defined LLVM_3_3 or defined LLVM_3_4)
-  kernel_compiler_passes(device, input->getDataLayout()).run(*input);
+      kernel_compiler_passes(device, input->getDataLayout()).run(*input);
 #else
-  kernel_compiler_passes(device,
-                         input->getDataLayout()->getStringRepresentation())
-                        .run(*input);
+      kernel_compiler_passes(device,
+                             input->getDataLayout()->getStringRepresentation())
+                             .run(*input);
 #endif
-
+    }
   // TODO: don't write this once LLC is called via API, not system()
   write_temporary_file(input, parallel_filename);
 
@@ -1310,12 +1313,9 @@ pocl_llvm_codegen(cl_kernel kernel,
     std::error_code error;
     tool_output_file outfile(outfilename, error, F_Binary);
 #endif
-    printf("%s\n", device->llvm_target_triplet);
     llvm::Triple triple(device->llvm_target_triplet);
     llvm::TargetMachine *target = GetTargetMachine(device);
     llvm::Module *input = ParseIRFile(infilename, Err, *GlobalContext());
-    printf("%d\n", triple.getOS());
-    input->dump();
     llvm::PassManager PM;
     llvm::TargetLibraryInfo *TLI = new TargetLibraryInfo(triple);
     PM.add(TLI);
@@ -1350,7 +1350,6 @@ pocl_llvm_codegen(cl_kernel kernel,
       if(target->addPassesToEmitMC(PM, mcc, FOS, llvm::TargetMachine::CGFT_ObjectFile))
         return 1;
     }
-    printf("ret addPassesToEmit\n");
 
     PM.run(*input);
     outfile.keep();

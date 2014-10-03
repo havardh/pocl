@@ -74,7 +74,8 @@ pocl_ptx_run
  _cl_command_node* cmd)
 {
   printd("pocl_ptx_run");
-  pocl_basic_run(data, cmd);
+
+
 }
 
 void
@@ -88,5 +89,11 @@ void
 pocl_ptx_compile_submitted_kernels(_cl_command_node* cmd)
 {
   printd("pocl_ptx_compile_submitted_kernels");
-  pocl_basic_compile_submitted_kernels(cmd);
+  
+  if (cmd->type == CL_COMMAND_NDRANGE_KERNEL)
+    {
+      llvm_codegen (cmd->command.run.tmp_dir,
+                    cmd->command.run.kernel,
+                    cmd->device);
+    }
 }

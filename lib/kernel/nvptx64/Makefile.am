@@ -1,20 +1,17 @@
-# Process this file with automake to produce Makefile.in (in this,
-# and all subdirectories).
-# Makefile.am for tests/regression.
-#
-# Copyright (c) 2012 Pekka Jääskeläinen / Tampere University of Technology
-#               2014 Håvard Wormdal Høiby / Norwegian University of Science and Technology
-#
+# Process this file with automake to produce Makefile.in
+# 
+# Copyright (c) 2011 Universidad Rey Juan Carlos
+# 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-#
+# 
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-#
+# 
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,13 +20,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-noinst_PROGRAMS = test_ptxHelloWorld test_ptxVectorAdd
 
-test_ptxVectorAdd_SOURCES=test_ptxVectorAdd.cpp
 
-AM_LDFLAGS = ../../lib/poclu/libpoclu.la @OPENCL_LIBS@
-AM_CXXFLAGS = @OPENCL_CFLAGS@ -Wno-deprecated -Wno-deprecated-declarations
-AM_CPPFLAGS = -I$(top_srcdir)/fix-include -I$(top_builddir)/include -I$(top_srcdir)/include -I$(top_srcdir)/lib/CL
+KERNEL_TARGET = nvptx64
 
-run: test_ptxHelloWorld
-	@POCL_DEVICES="ptx" ./test_ptxHelloWorld
+# Use HOST flags:
+CLANG_FLAGS = @HOST_CLANG_FLAGS@ -Xclang -ffake-address-space-map -emit-llvm -ffp-contract=off
+LLC_FLAGS   = @HOST_LLC_FLAGS@
+LD_FLAGS    = @HOST_LD_FLAGS@
+
+include ../rules.mk
+include ../sources.mk
+if USE_VECMATHLIB
+include ../sources-vml.mk
+endif
