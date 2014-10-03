@@ -25,15 +25,27 @@
 
 #include "ptx.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include "common.h"
 #include <cuda.h>
 
 //#define DEBUG
+
+int pocl_ptx_dev_count = 0;
+CUdevice* pocl_ptx_devices = NULL;
 
 void printd(char* msg) {
 #ifdef DEBUG
   printf("%s\n", msg);
 #endif
 }
+
+
+#define checkCudaErrors(err)                         \
+  if (err != CUDA_SUCCESS) {                         \
+     printf("%s:%d %s\n", __FILE__,  __LINE__, err); \
+     exit(1);                                        \
+  }
 
 void pocl_ptx_init_device_ops(struct pocl_device_ops* ops)
 {
@@ -43,7 +55,10 @@ void pocl_ptx_init_device_ops(struct pocl_device_ops* ops)
 
   ops->init_device_infos = pocl_ptx_init_device_infos;
   ops->init = pocl_ptx_init;
+  ops->alloc_mem_obj = pocl_ptx_alloc_mem_obj;
+  ops->free = pocl_ptx_free;
   ops->read = pocl_ptx_read;
+  ops->write = pocl_ptx_write;
   ops->run = pocl_ptx_run;
   ops->compile_submitted_kernels = pocl_ptx_compile_submitted_kernels;
 
@@ -58,6 +73,7 @@ pocl_ptx_init_device_infos(struct _cl_device_id* dev)
   dev->type = CL_DEVICE_TYPE_GPU;
   dev->llvm_target_triplet = "nvptx64-nvidia-cuda";
   dev->llvm_cpu = "sm_20";
+  dev->max_mem_alloc_size = 1024;
 }
 
 void
@@ -66,23 +82,60 @@ pocl_ptx_init (cl_device_id device, const char* parameters)
   printd("pocl_ptx_init\n");
   
   pocl_basic_init(device, parameters);
+
+  checkCudaErrors(cuInit(0));
+  checkCudaErrors(cuDeviceGetCount(&pocl_ptx_dev_count));
+
+  
+  pocl_ptx_devices = (CUdevice*)malloc(sizeof(CUdevice)* pocl_ptx_dev_count);
+
+  for (unsigned i=0; i<pocl_ptx_dev_count; ++i) 
+    {
+      checkCudaErrors(cuDeviceGet(&pocl_ptx_devices[i], i));
+    }
+
+  CUcontext context;
+  checkCudaErrors(cuCtxCreate(&context, 0, pocl_ptx_devices[0]));
+
 }
 
 void
 pocl_ptx_run
 (void *data,
  _cl_command_node* cmd)
+cl_int
+pocl_ptx_alloc_mem_obj (cl_device_id device, cl_mem mem_obj)
 {
-  printd("pocl_ptx_run");
 
+  CUdeviceptr* deviceBuffer = malloc(sizeof(CUdeviceptr));
+  checkCudaErrors(cuMemAlloc(deviceBuffer, mem_obj->size));
+  mem_obj->device_ptrs[device->dev_id].mem_ptr = deviceBuffer;
+  
+  return CL_SUCCESS;
+}
 
+void
+pocl_ptx_free (void *data, cl_mem_flags flags, void *ptr)
+{
 }
 
 void
 pocl_ptx_read (void *data, void *host_ptr, const void *device_ptr, size_t cb)
 {
   printd("pocl_ptx_read");
-  pocl_basic_read(data, host_ptr, device_ptr, cb);
+
+  checkCudaErrors(cuMemcpyDtoH(host_ptr, *(CUdeviceptr*)device_ptr, cb));
+
+}
+
+void
+pocl_ptx_write (void *data, const void *host_ptr, void *device_ptr, size_t cb)
+{
+  printd("pocl_ptx_write");
+
+  checkCudaErrors(cuMemcpyHtoD(*(CUdeviceptr*)device_ptr, host_ptr, cb));
+}
+
 }
 
 void

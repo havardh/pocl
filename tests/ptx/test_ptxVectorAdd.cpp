@@ -17,7 +17,7 @@ static const char* kernelSource = "\n"          \
   "{ \n"                                        \
   "  c[0] = a[0] + b[0];\n"                     \
   "} \n";                                       
-  
+
 
 int main(int argc, char **argv) 
 {
@@ -52,64 +52,41 @@ int main(int argc, char **argv)
     }
 
     // Setup kernel
-
     cl::Program::Sources sources(1, std::make_pair(kernelSource, 0));
     cl::Program program(context, sources);
 
     program.build(devices);
 
     // Setup buffers
-    cl::Buffer devBufferA = cl::Buffer(
-      context,
-      (CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR),
-      (size_t) N, (void *) &hostBufferA[0]);
+    cl::Buffer devBufferA(context, CL_MEM_READ_WRITE, (size_t) N);
+    cl::Buffer devBufferB(context, CL_MEM_READ_WRITE, (size_t) N);
+    cl::Buffer devBufferC(context, CL_MEM_READ_WRITE, (size_t) N);
 
-    cl::Buffer devBufferB = cl::Buffer(
-      context,
-      CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-      (size_t) N, (void *) &hostBufferB[0]);
-
-    cl::Buffer devBufferC = cl::Buffer(
-      context,
-      CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR,
-      (size_t) N, (void *) &hostBufferC[0]);
-
-    cl::Kernel kernel(program, "add");
-
-    kernel.setArg(0, devBufferA);
-    kernel.setArg(1, devBufferB);
-    kernel.setArg(2, devBufferC);
 
     cl::CommandQueue queue(context, devices[0], CL_QUEUE_PROFILING_ENABLE);
 
+    queue.enqueueWriteBuffer(devBufferA, CL_TRUE, 0, (size_t) N, hostBufferA);
+    queue.enqueueWriteBuffer(devBufferB, CL_TRUE, 0, (size_t) N, hostBufferB);
+
+    cl::Kernel kernel(program, "add");
+    kernel.setArg(0, devBufferA);
+    kernel.setArg(1, devBufferB);
+    kernel.setArg(2, devBufferC);
     cl::Event enqEvent;
     queue.enqueueNDRangeKernel(
       kernel,
       cl::NullRange,
       cl::NDRange(1),
-      cl::NullRange,
-      NULL, &enqEvent);
-    
+      cl::NullRange);
 
-    cl::Event mapEvent;
-    queue.enqueueMapBuffer(
-      devBufferC,
-      CL_TRUE,
-      CL_MAP_READ,
-      0, 1, NULL, &mapEvent);
+    queue.enqueueReadBuffer(devBufferC, CL_TRUE, 0, (size_t) N, hostBufferC);
+    queue.finish();
 
     for (int i=0; i<N; i++) {
       std::cout << hostBufferA[i] << " + " << hostBufferB[i] << " = " << hostBufferC[i] << "\n";
     }
     
-    cl::Event unmapEvent;
-    queue.enqueueUnmapMemObject(
-      devBufferC,
-      (void *) &hostBufferC[0],
-      NULL, 
-      &unmapEvent);
 
-    queue.finish();
   } catch (cl::Error err) {
     std::cerr
       << "ERROR: "
