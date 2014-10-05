@@ -62,16 +62,17 @@ int main(int argc, char **argv)
     cl::Buffer devBufferB(context, CL_MEM_READ_WRITE, (size_t) N);
     cl::Buffer devBufferC(context, CL_MEM_READ_WRITE, (size_t) N);
 
-
     cl::CommandQueue queue(context, devices[0], CL_QUEUE_PROFILING_ENABLE);
 
     queue.enqueueWriteBuffer(devBufferA, CL_TRUE, 0, (size_t) N, hostBufferA);
     queue.enqueueWriteBuffer(devBufferB, CL_TRUE, 0, (size_t) N, hostBufferB);
+    queue.enqueueWriteBuffer(devBufferC, CL_TRUE, 0, (size_t) N, hostBufferC);
 
     cl::Kernel kernel(program, "add");
     kernel.setArg(0, devBufferA);
     kernel.setArg(1, devBufferB);
     kernel.setArg(2, devBufferC);
+
     cl::Event enqEvent;
     queue.enqueueNDRangeKernel(
       kernel,

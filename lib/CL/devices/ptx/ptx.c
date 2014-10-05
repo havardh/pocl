@@ -99,10 +99,6 @@ pocl_ptx_init (cl_device_id device, const char* parameters)
 
 }
 
-void
-pocl_ptx_run
-(void *data,
- _cl_command_node* cmd)
 cl_int
 pocl_ptx_alloc_mem_obj (cl_device_id device, cl_mem mem_obj)
 {
@@ -110,13 +106,14 @@ pocl_ptx_alloc_mem_obj (cl_device_id device, cl_mem mem_obj)
   CUdeviceptr* deviceBuffer = malloc(sizeof(CUdeviceptr));
   checkCudaErrors(cuMemAlloc(deviceBuffer, mem_obj->size));
   mem_obj->device_ptrs[device->dev_id].mem_ptr = deviceBuffer;
-  
+
   return CL_SUCCESS;
 }
 
 void
 pocl_ptx_free (void *data, cl_mem_flags flags, void *ptr)
 {
+  //checkCudaErrors(cudaMemFree(*(CUdeviceptr*)ptr));
 }
 
 void
@@ -135,6 +132,73 @@ pocl_ptx_write (void *data, const void *host_ptr, void *device_ptr, size_t cb)
 
   checkCudaErrors(cuMemcpyHtoD(*(CUdeviceptr*)device_ptr, host_ptr, cb));
 }
+
+void
+pocl_ptx_run
+(void *data,
+ _cl_command_node* cmd)
+{
+  printd("pocl_ptx_run");
+
+  cl_kernel kernel = cmd->command.run.kernel;
+  char* tmpdir = cmd->command.run.tmp_dir;
+  char* objfile[POCL_FILENAME_LENGTH];
+
+  int error = snprintf
+    (objfile, POCL_FILENAME_LENGTH,
+         "%s/parallel.ptx", tmpdir);
+  assert (error >= 0);
+  
+  int f = fopen(objfile, "rb");
+  
+  fseek(f, 0, SEEK_END);
+  long fsize = ftell(f);
+  fseek(f, 0, SEEK_SET);
+  
+  char *string = malloc(fsize + 1);
+  fread(string, fsize, 1, f);
+  fclose(f);
+  
+  string[fsize] = 0;
+
+  CUmodule cudaModule;
+  checkCudaErrors(cuModuleLoadDataEx(&cudaModule, string, 0, 0, 0));
+
+  CUfunction cudaFunction;
+  checkCudaErrors(cuModuleGetFunction(&cudaFunction, cudaModule, kernel->function_name));
+
+  /*size_t size = sizeof(CUdeviceptr*);
+  void* kernelPararms = malloc(size * cmd->command.run.arg_buffer_count);
+
+  cl_device_id device = cmd->device;
+  cl_mem* buffers = cmd->command.run.arg_buffers;
+  for (unsigned offset = 0, i=0; i<cmd->command.run.arg_buffer_count; i++)
+    {
+      CUdeviceptr *deviceBuffer = (CUdeviceptr*)buffers[i]->device_ptrs[device->dev_id].mem_ptr;
+      printf("Run devBuf: %u\n", *deviceBuffer);
+      memcpy(kernelPararms + offset, deviceBuffer, size);
+
+      offset += size;
+      }*/
+
+  CUdeviceptr devBufferA = *(CUdeviceptr*)cmd->command.run.arg_buffers[0]->device_ptrs[cmd->device->dev_id].mem_ptr;
+  CUdeviceptr devBufferB = *(CUdeviceptr*)cmd->command.run.arg_buffers[1]->device_ptrs[cmd->device->dev_id].mem_ptr;
+  CUdeviceptr devBufferC = *(CUdeviceptr*)cmd->command.run.arg_buffers[2]->device_ptrs[cmd->device->dev_id].mem_ptr;
+
+  void *kernelParams[] = { &devBufferA, &devBufferB, &devBufferC };
+
+  unsigned blockSizeX = 1;
+  unsigned blockSizeY = 1;
+  unsigned blockSizeZ = 1;
+  unsigned gridSizeX = 1;
+  unsigned gridSizeY = 1;
+  unsigned gridSizeZ = 1;
+
+  
+  checkCudaErrors(cuLaunchKernel(cudaFunction, gridSizeX, gridSizeY, gridSizeZ,
+                                 blockSizeX, blockSizeY, blockSizeZ,
+                                 0, NULL, kernelParams, NULL));
+  
 
 }
 
