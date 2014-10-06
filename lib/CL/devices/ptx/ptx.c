@@ -144,6 +144,7 @@ pocl_ptx_run
   char* tmpdir = cmd->command.run.tmp_dir;
   char* objfile[POCL_FILENAME_LENGTH];
 
+  // Read the kernel ptx source code
   int error = snprintf
     (objfile, POCL_FILENAME_LENGTH,
          "%s/parallel.ptx", tmpdir);
@@ -161,31 +162,23 @@ pocl_ptx_run
   
   string[fsize] = 0;
 
+  // Create cuda Module from ptx string
   CUmodule cudaModule;
   checkCudaErrors(cuModuleLoadDataEx(&cudaModule, string, 0, 0, 0));
 
+  // Extract the kernel function by name
   CUfunction cudaFunction;
   checkCudaErrors(cuModuleGetFunction(&cudaFunction, cudaModule, kernel->function_name));
 
-  /*size_t size = sizeof(CUdeviceptr*);
-  void* kernelPararms = malloc(size * cmd->command.run.arg_buffer_count);
-
+  // Setup the kernel parameter array
+  CUdeviceptr* kernelParams = malloc(sizeof(CUdeviceptr*) * cmd->command.run.arg_buffer_count);
   cl_device_id device = cmd->device;
   cl_mem* buffers = cmd->command.run.arg_buffers;
   for (unsigned offset = 0, i=0; i<cmd->command.run.arg_buffer_count; i++)
     {
-      CUdeviceptr *deviceBuffer = (CUdeviceptr*)buffers[i]->device_ptrs[device->dev_id].mem_ptr;
-      printf("Run devBuf: %u\n", *deviceBuffer);
-      memcpy(kernelPararms + offset, deviceBuffer, size);
+      kernelParams[i] = (CUdeviceptr*)buffers[i]->device_ptrs[device->dev_id].mem_ptr;
+    }
 
-      offset += size;
-      }*/
-
-  CUdeviceptr devBufferA = *(CUdeviceptr*)cmd->command.run.arg_buffers[0]->device_ptrs[cmd->device->dev_id].mem_ptr;
-  CUdeviceptr devBufferB = *(CUdeviceptr*)cmd->command.run.arg_buffers[1]->device_ptrs[cmd->device->dev_id].mem_ptr;
-  CUdeviceptr devBufferC = *(CUdeviceptr*)cmd->command.run.arg_buffers[2]->device_ptrs[cmd->device->dev_id].mem_ptr;
-
-  void *kernelParams[] = { &devBufferA, &devBufferB, &devBufferC };
 
   unsigned blockSizeX = 1;
   unsigned blockSizeY = 1;
