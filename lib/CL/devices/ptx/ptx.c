@@ -179,13 +179,13 @@ pocl_ptx_run
       kernelParams[i] = (CUdeviceptr*)buffers[i]->device_ptrs[device->dev_id].mem_ptr;
     }
 
+  unsigned blockSizeX = cmd->command.run.local_x;
+  unsigned blockSizeY = cmd->command.run.local_y;
+  unsigned blockSizeZ = cmd->command.run.local_z;
+  unsigned gridSizeX = cmd->command.run.pc.num_groups[0];
+  unsigned gridSizeY = cmd->command.run.pc.num_groups[1];
+  unsigned gridSizeZ = cmd->command.run.pc.num_groups[2];
 
-  unsigned blockSizeX = 1;
-  unsigned blockSizeY = 1;
-  unsigned blockSizeZ = 1;
-  unsigned gridSizeX = 1;
-  unsigned gridSizeY = 1;
-  unsigned gridSizeZ = 1;
 
   
   checkCudaErrors(cuLaunchKernel(cudaFunction, gridSizeX, gridSizeY, gridSizeZ,
