@@ -8,6 +8,8 @@
 #include <cstdlib>
 #include <cassert>
 
+#include "error_codes.h"
+
 #define N 1
 
 static const char* kernelSource = "\n"          \
@@ -93,7 +95,8 @@ int main(int argc, char **argv)
       << "ERROR: "
       << err.what()
       << "("
-      << err.err()
+      << ptx_cl_error(err.err())
+      << ", " << err.err()
       << ")"
       << std::endl;
   }
