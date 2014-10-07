@@ -1129,7 +1129,6 @@ kernel_library
       kernellib += ".bc";
     }
 
-  printf("%s\n", kernellib.c_str());
 
   SMDiagnostic Err;
   llvm::Module *lib = ParseIRFile(kernellib.c_str(), Err, *GlobalContext());
