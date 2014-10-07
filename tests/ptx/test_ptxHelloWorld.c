@@ -15,9 +15,9 @@ int main(int argc, char **argv)
 
   err = clGetDeviceInfo( did, CL_DEVICE_NAME, sizeof(result), result, &rvs);
 
-  result[rvs] = '\0';
+  result[3] = 0;
 
-  printf("%s\n", result);
+  printf("%s\n", result );
 
   return 0;
 }

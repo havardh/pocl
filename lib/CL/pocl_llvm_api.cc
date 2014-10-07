@@ -1102,6 +1102,10 @@ kernel_library
       if (triple.getArch() == Triple::tce) 
         {
           kernellib += "tce";
+        } 
+      else if (triple.getArch() == Triple::nvptx64) 
+        {
+          kernellib += "nvptx64";
         }
 #ifdef LLVM_3_2 
       else if (triple.getArch() == Triple::cellspu) 
@@ -1124,6 +1128,7 @@ kernel_library
       kernellib += device->llvm_target_triplet;
       kernellib += ".bc";
     }
+
 
   SMDiagnostic Err;
   llvm::Module *lib = ParseIRFile(kernellib.c_str(), Err, *GlobalContext());
@@ -1181,7 +1186,7 @@ int pocl_llvm_generate_workgroup_function(cl_device_id device,
   llvm::Module *libmodule = kernel_library(device, input);
   assert (libmodule != NULL);
   link(input, libmodule);
-
+    
   /* Now finally run the set of passes assembled above */
   // TODO pass these as parameters instead, this is not thread safe!
   pocl::LocalSize.clear();
@@ -1190,14 +1195,16 @@ int pocl_llvm_generate_workgroup_function(cl_device_id device,
   pocl::LocalSize.addValue(local_z);
   KernelName = kernel->name;
 
+  if (strcmp(device->short_name, "ptx") != 0) 
+    {
 #if (defined LLVM_3_2 or defined LLVM_3_3 or defined LLVM_3_4)
-  kernel_compiler_passes(device, input->getDataLayout()).run(*input);
+      kernel_compiler_passes(device, input->getDataLayout()).run(*input);
 #else
-  kernel_compiler_passes(device,
-                         input->getDataLayout()->getStringRepresentation())
-                        .run(*input);
+      kernel_compiler_passes(device,
+                             input->getDataLayout()->getStringRepresentation())
+                             .run(*input);
 #endif
-
+    }
   // TODO: don't write this once LLC is called via API, not system()
   write_temporary_file(input, parallel_filename);
 
@@ -1306,7 +1313,6 @@ pocl_llvm_codegen(cl_kernel kernel,
     llvm::Triple triple(device->llvm_target_triplet);
     llvm::TargetMachine *target = GetTargetMachine(device);
     llvm::Module *input = ParseIRFile(infilename, Err, *GlobalContext());
-
     llvm::PassManager PM;
     llvm::TargetLibraryInfo *TLI = new TargetLibraryInfo(triple);
     PM.add(TLI);
@@ -1332,8 +1338,15 @@ pocl_llvm_codegen(cl_kernel kernel,
     // TODO: better error check
     formatted_raw_ostream FOS(outfile.os());
     llvm::MCContext *mcc;
-    if(target->addPassesToEmitMC(PM, mcc, FOS, llvm::TargetMachine::CGFT_ObjectFile))
+    if (triple.getArch() == Triple::nvptx64) 
+      {
+        if (target->addPassesToEmitFile(PM, FOS, llvm::TargetMachine::CGFT_AssemblyFile))
+            return 1;
+      }
+    else {
+      if(target->addPassesToEmitMC(PM, mcc, FOS, llvm::TargetMachine::CGFT_ObjectFile))
         return 1;
+    }
 
     PM.run(*input);
     outfile.keep();

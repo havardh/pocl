@@ -7,3 +7,19 @@ AT_CHECK([POCL_DEVICES=ptx $abs_top_builddir/tests/ptx/test_ptxHelloWorld], 0,
 [ptx
 ])
 AT_CLEANUP
+
+AT_SETUP([A read write test])
+AT_KEYWORDS([ptx])
+AT_CHECK([POCL_DEVICES=ptx $abs_top_builddir/tests/ptx/test_ptxReadWrite], 0,
+[123
+])
+AT_CLEANUP
+
+AT_SETUP([A Vector add test])
+AT_KEYWORDS([ptx])
+AT_CHECK([POCL_DEVICES=ptx $abs_top_builddir/tests/ptx/test_ptxVectorAdd], 0,
+[1 + 1 = 2
+2 + 2 = 4
+3 + 3 = 6
+])
+AT_CLEANUP

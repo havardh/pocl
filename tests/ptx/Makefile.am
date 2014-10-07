@@ -23,7 +23,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-noinst_PROGRAMS= test_ptxHelloWorld
+noinst_PROGRAMS = test_ptxHelloWorld test_ptxVectorAdd test_ptxReadWrite
+
+test_ptxVectorAdd_SOURCES=test_ptxVectorAdd.cpp
+test_ptxReadWrite_SOURCES=test_ptxReadWrite.cpp
 
 AM_LDFLAGS = ../../lib/poclu/libpoclu.la @OPENCL_LIBS@
 AM_CXXFLAGS = @OPENCL_CFLAGS@ -Wno-deprecated -Wno-deprecated-declarations

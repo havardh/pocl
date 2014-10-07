@@ -67,38 +67,58 @@ llvm_codegen (const char* tmpdir, cl_kernel kernel, cl_device_id device) {
     (module, POCL_FILENAME_LENGTH,
      "%s/parallel.so", tmpdir);
   assert (error >= 0);
-  error = snprintf
-    (objfile, POCL_FILENAME_LENGTH,
-     "%s/parallel.so.o", tmpdir);
-  assert (error >= 0);
-
-
-  if (access (module, F_OK) != 0)
+  if (strcmp(device->short_name, "ptx") != 0) 
     {
+    error = snprintf
+      (objfile, POCL_FILENAME_LENGTH,
+       "%s/parallel.so.o", tmpdir);
+    assert (error >= 0);
+    
+
+
+    if (access (module, F_OK) != 0)
+      {
+        error = snprintf (bytecode, POCL_FILENAME_LENGTH,
+                          "%s/%s", tmpdir, POCL_PARALLEL_BC_FILENAME);
+        assert (error >= 0);
+      
+        error = pocl_llvm_codegen( kernel, device, bytecode, objfile);
+        assert (error == 0);
+
+        // clang is used as the linker driver in LINK_CMD
+        error = snprintf (command, COMMAND_LENGTH,
+                          LINK_CMD " " HOST_CLANG_FLAGS " " HOST_LD_FLAGS " "
+                          "-o %s %s.o",
+                          module,
+                          module);
+        assert (error >= 0);
+
+        if (pocl_verbose) {
+          fprintf(stderr, "[pocl] executing [%s]\n", command);
+          fflush(stderr);
+        }
+        error = system (command);
+        assert (error == 0);
+      }
+  
+    } 
+  else 
+    {
+      error = snprintf
+        (objfile, POCL_FILENAME_LENGTH,
+         "%s/parallel.ptx", tmpdir);
+      assert (error >= 0);
+
       error = snprintf (bytecode, POCL_FILENAME_LENGTH,
                         "%s/%s", tmpdir, POCL_PARALLEL_BC_FILENAME);
       assert (error >= 0);
       
       error = pocl_llvm_codegen( kernel, device, bytecode, objfile);
       assert (error == 0);
-
-      // clang is used as the linker driver in LINK_CMD
-      error = snprintf (command, COMMAND_LENGTH,
-                       LINK_CMD " " HOST_CLANG_FLAGS " " HOST_LD_FLAGS " "
-                        "-o %s %s.o",
-                       module,
-                       module);
-      assert (error >= 0);
-
-      if (pocl_verbose) {
-        fprintf(stderr, "[pocl] executing [%s]\n", command);
-        fflush(stderr);
-      }
-      error = system (command);
-      assert (error == 0);
     }
-  return module;
-}
+
+  return module;}
+  
 
 /**
  * Populates the device specific image data structure used by kernel
