@@ -10,16 +10,17 @@
 
 #include "error_codes.h"
 
-#define N 1
+#define N 3
 
-static const char* kernelSource = "\n"          \
-  "__kernel void add( __global int* a, \n"      \
-  "                   __global int* b, \n"      \
-  "                   __global int* c) \n"      \
-  "{ \n"                                        \
-  "  c[0] = a[0] + b[0];\n"                     \
-  "} \n";                                       
-
+static const char* kernelSource = "\n"                      \
+  "__kernel void add( __global int* a, \n"                  \
+  "                   __global int* b, \n"                  \
+  "                   __global int* c) \n"                  \
+  "{ \n"                                                    \
+  "  int id = get_global_id(0); \n"                         \
+  "  if (id < 3) \n"                                        \
+  "    c[id] = a[id] + b[id];\n"                            \
+  "} \n";
 
 int main(int argc, char **argv) 
 {
@@ -42,7 +43,6 @@ int main(int argc, char **argv)
     assert(devices.size() == 1);
 
     cl::Device device = devices.at(0);
-    //assert (device.getInfo<CL_DEVICE_NAME>() == "ptx");
 
     int hostBufferA[N];
     int hostBufferB[N];
@@ -60,31 +60,38 @@ int main(int argc, char **argv)
     program.build(devices);
 
     // Setup buffers
-    cl::Buffer devBufferA(context, CL_MEM_READ_WRITE, (size_t) N);
-    cl::Buffer devBufferB(context, CL_MEM_READ_WRITE, (size_t) N);
-    cl::Buffer devBufferC(context, CL_MEM_READ_WRITE, (size_t) N);
+    cl::Buffer devBufferA(context, CL_MEM_READ_WRITE, (size_t) N*sizeof(int));
+    cl::Buffer devBufferB(context, CL_MEM_READ_WRITE, (size_t) N*sizeof(int));
+    cl::Buffer devBufferC(context, CL_MEM_READ_WRITE, (size_t) N*sizeof(int));
 
     cl::CommandQueue queue(context, devices[0], CL_QUEUE_PROFILING_ENABLE);
 
-    queue.enqueueWriteBuffer(devBufferA, CL_TRUE, 0, (size_t) N, hostBufferA);
-    queue.enqueueWriteBuffer(devBufferB, CL_TRUE, 0, (size_t) N, hostBufferB);
-    queue.enqueueWriteBuffer(devBufferC, CL_TRUE, 0, (size_t) N, hostBufferC);
+    // Write to GPU
+    queue.enqueueWriteBuffer(devBufferA, CL_TRUE, 0, (size_t) N*sizeof(int), hostBufferA);
+    queue.enqueueWriteBuffer(devBufferB, CL_TRUE, 0, (size_t) N*sizeof(int), hostBufferB);
+    queue.enqueueWriteBuffer(devBufferC, CL_TRUE, 0, (size_t) N*sizeof(int), hostBufferC);
 
+    // Set arguments for kernel
     cl::Kernel kernel(program, "add");
     kernel.setArg(0, devBufferA);
     kernel.setArg(1, devBufferB);
     kernel.setArg(2, devBufferC);
 
+    // Execute kernel
     cl::Event enqEvent;
     queue.enqueueNDRangeKernel(
       kernel,
       cl::NullRange,
-      cl::NDRange(1),
+      cl::NDRange(3),
       cl::NullRange);
 
-    queue.enqueueReadBuffer(devBufferC, CL_TRUE, 0, (size_t) N, hostBufferC);
+    // Read from GPU
+    queue.enqueueReadBuffer(devBufferC, CL_TRUE, 0, (size_t) N*sizeof(int), hostBufferC);
+
+    // Wait untill all tasks are performed
     queue.finish();
 
+    // Print result to stdout
     for (int i=0; i<N; i++) {
       std::cout << hostBufferA[i] << " + " << hostBufferB[i] << " = " << hostBufferC[i] << "\n";
     }

@@ -1183,12 +1183,10 @@ int pocl_llvm_generate_workgroup_function(cl_device_id device,
 
   // Later this should be replaced with indexed linking of source code
   // and/or bitcode for each kernel.
-  if (strcmp(device->short_name, "ptx") != 0) 
-    {
-      llvm::Module *libmodule = kernel_library(device, input);
-      assert (libmodule != NULL);
-      link(input, libmodule);
-    }
+  llvm::Module *libmodule = kernel_library(device, input);
+  assert (libmodule != NULL);
+  link(input, libmodule);
+    
   /* Now finally run the set of passes assembled above */
   // TODO pass these as parameters instead, this is not thread safe!
   pocl::LocalSize.clear();
