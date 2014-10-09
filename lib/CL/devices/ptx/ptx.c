@@ -102,7 +102,6 @@ pocl_ptx_init (cl_device_id device, const char* parameters)
 cl_int
 pocl_ptx_alloc_mem_obj (cl_device_id device, cl_mem mem_obj)
 {
-
   CUdeviceptr* deviceBuffer = malloc(sizeof(CUdeviceptr));
   checkCudaErrors(cuMemAlloc(deviceBuffer, mem_obj->size));
   mem_obj->device_ptrs[device->dev_id].mem_ptr = deviceBuffer;
@@ -113,7 +112,8 @@ pocl_ptx_alloc_mem_obj (cl_device_id device, cl_mem mem_obj)
 void
 pocl_ptx_free (void *data, cl_mem_flags flags, void *ptr)
 {
-  //checkCudaErrors(cudaMemFree(*(CUdeviceptr*)ptr));
+  checkCudaErrors(cuMemFree(*(CUdeviceptr*)ptr));
+  free(ptr);
 }
 
 void
@@ -186,8 +186,6 @@ pocl_ptx_run
   unsigned gridSizeY = cmd->command.run.pc.num_groups[1];
   unsigned gridSizeZ = cmd->command.run.pc.num_groups[2];
 
-
-  
   checkCudaErrors(cuLaunchKernel(cudaFunction, gridSizeX, gridSizeY, gridSizeZ,
                                  blockSizeX, blockSizeY, blockSizeZ,
                                  0, NULL, kernelParams, NULL));
