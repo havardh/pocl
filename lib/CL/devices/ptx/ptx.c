@@ -174,7 +174,7 @@ pocl_ptx_run
   CUdeviceptr* kernelParams = malloc(sizeof(CUdeviceptr*) * cmd->command.run.arg_buffer_count);
   cl_device_id device = cmd->device;
   cl_mem* buffers = cmd->command.run.arg_buffers;
-  for (unsigned offset = 0, i=0; i<cmd->command.run.arg_buffer_count; i++)
+  for (unsigned i=0; i<cmd->command.run.arg_buffer_count; i++)
     {
       kernelParams[i] = (CUdeviceptr*)buffers[i]->device_ptrs[device->dev_id].mem_ptr;
     }
